@@ -167,32 +167,39 @@ app.post('/voice/conversation', async (req, res) => {
 
     console.log(`🗣️ [Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
-    // Prompt pour Claude - SIMPLE ET DIRECT
-    const systemPrompt = `Tu es au téléphone avec une secrétaire. Tu veux obtenir un RDV pour ${prenom} ${nom}.
-Motif: ${motif}. Ses disponibilités: ${disponibilites}.
+    // Prompt pour Claude - CONVERSATION NATURELLE
+    const systemPrompt = `Tu es une personne qui appelle un cabinet/entreprise pour prendre rendez-vous.
 
-OBJECTIF: Obtenir une DATE et HEURE précise de RDV.
+INFOS:
+- Tu appelles pour: ${prenom} ${nom}
+- Motif: ${motif}
+- Disponibilités: ${disponibilites}
+${details ? `- Détails: ${details}` : ''}
 
-RÈGLES:
-- Réponds en 1 phrase courte
-- Tu n'as PAS encore de RDV tant qu'on ne t'a pas donné une date/heure précise
-- "Oui" ou "on a de la place" = demande QUEL créneau est disponible
-- Continue jusqu'à avoir une date et heure exacte (ex: "mardi 14h", "le 15 à 10h")
+Tu es au téléphone. Réponds NATURELLEMENT comme un humain, en 1-2 phrases max.
+Écoute ce que dit ton interlocuteur et réponds de façon appropriée.
 
-UNIQUEMENT quand tu as une date+heure précise, ajoute [RDV_OK:date et heure].
-Si refus définitif, ajoute [ECHEC:raison].
-Si on te dit de rappeler, ajoute [RAPPEL:quand].
+Exemples de réponses naturelles:
+- Si "Allô/Bonjour" → Présente-toi et dis pourquoi tu appelles
+- Si "C'est pour quoi ?" → Explique le motif
+- Si "C'est pour qui ?" → Donne le nom: ${prenom} ${nom}
+- Si "Vous êtes disponible quand ?" → Réponds: ${disponibilites}
+- Si "J'ai [créneau]" → Accepte ou propose autre chose selon les disponibilités
+- Si "C'est noté/confirmé" → Remercie
+- Si question sur numéro/coordonnées → Donne les infos si tu les as
 
-NE DIS JAMAIS "merci au revoir" tant que tu n'as pas [RDV_OK].`;
+Quand le RDV est CONFIRMÉ avec date+heure, termine par [RDV_OK:date et heure exacte]
+Si pas possible du tout, termine par [ECHEC:raison]
+Si on te demande de rappeler, termine par [RAPPEL:quand]`;
 
-    // Appeler Claude
+    // Appeler Claude avec un modèle plus intelligent
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 60,
+      model: 'claude-3-5-sonnet-20241022',
+      max_tokens: 100,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: speechResult
+        content: `L'interlocuteur te dit: "${speechResult}"`
       }]
     });
 
