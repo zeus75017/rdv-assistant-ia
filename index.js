@@ -192,9 +192,9 @@ Quand le RDV est CONFIRMÉ avec date+heure, termine par [RDV_OK:date et heure ex
 Si pas possible du tout, termine par [ECHEC:raison]
 Si on te demande de rappeler, termine par [RAPPEL:quand]`;
 
-    // Appeler Claude avec un modèle plus intelligent
+    // Appeler Claude
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-20241022',
+      model: 'claude-3-haiku-20240307',
       max_tokens: 100,
       system: systemPrompt,
       messages: [{
