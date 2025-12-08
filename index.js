@@ -63,10 +63,10 @@ app.post('/api/make-call', async (req, res) => {
       disponibilites
     }));
 
-    // URL de base
-    const baseUrl = process.env.RAILWAY_PUBLIC_DOMAIN
-      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-      : process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
+    // URL de base (Render fournit RENDER_EXTERNAL_URL)
+    const baseUrl = process.env.RENDER_EXTERNAL_URL
+      || process.env.BASE_URL
+      || `https://rdv-assistant-ia.onrender.com`;
 
     console.log('📞 Lancement appel vers:', numero_entreprise);
     console.log('🌐 Base URL:', baseUrl);
