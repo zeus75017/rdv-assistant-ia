@@ -1,0 +1,12 @@
+{
+  "name": "rdv-assistant-ia",
+  "version": "1.0.0",
+  "description": "Assistant IA qui appelle pour prendre des rendez-vous",
+  "scripts": {
+    "build": "echo 'No build needed'"
+  },
+  "dependencies": {
+    "twilio": "^4.19.0",
+    "@anthropic-ai/sdk": "^0.24.0"
+  }
+}

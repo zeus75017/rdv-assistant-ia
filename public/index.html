@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RDV Assistant - Prenez vos rendez-vous automatiquement</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+
+    .card {
+      background: white;
+      border-radius: 20px;
+      padding: 40px 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo h1 {
+      font-size: 28px;
+      color: #333;
+    }
+
+    .logo p {
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 15px;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 18px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+      display: none;
+    }
+
+    .status.loading {
+      display: block;
+      background: #fff3cd;
+      color: #856404;
+    }
+
+    .status.success {
+      display: block;
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.error {
+      display: block;
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .info-box {
+      background: #f0f4ff;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 25px;
+      font-size: 14px;
+      color: #4a5568;
+    }
+
+    .info-box strong {
+      color: #667eea;
+    }
+
+    .two-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    @media (max-width: 500px) {
+      .two-cols {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo">
+        <h1>📞 RDV Assistant</h1>
+        <p>Notre IA appelle pour vous</p>
+      </div>
+
+      <div class="info-box">
+        <strong>Comment ça marche ?</strong><br>
+        Entrez vos informations et le numéro à appeler. Notre assistant IA va appeler et prendre rendez-vous pour vous !
+      </div>
+
+      <form id="rdvForm">
+        <div class="two-cols">
+          <div class="form-group">
+            <label for="prenom">Prénom</label>
+            <input type="text" id="prenom" name="prenom" required placeholder="Jean">
+          </div>
+
+          <div class="form-group">
+            <label for="nom">Nom</label>
+            <input type="text" id="nom" name="nom" required placeholder="Dupont">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="telephone">Votre téléphone (pour confirmation)</label>
+          <input type="tel" id="telephone" name="telephone" required placeholder="+33612345678">
+        </div>
+
+        <div class="form-group">
+          <label for="entreprise">Nom de l'entreprise à appeler</label>
+          <input type="text" id="entreprise" name="entreprise" required placeholder="Cabinet dentaire Dr Martin">
+        </div>
+
+        <div class="form-group">
+          <label for="numero_entreprise">Numéro à appeler</label>
+          <input type="tel" id="numero_entreprise" name="numero_entreprise" required placeholder="+33123456789">
+        </div>
+
+        <div class="form-group">
+          <label for="motif">Motif du rendez-vous</label>
+          <select id="motif" name="motif" required>
+            <option value="">Sélectionnez un motif</option>
+            <option value="consultation">Consultation générale</option>
+            <option value="urgence">Urgence</option>
+            <option value="suivi">Suivi / Contrôle</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="details">Détails supplémentaires (optionnel)</label>
+          <textarea id="details" name="details" placeholder="Ex: Je préfère le matin, douleur depuis 2 jours..."></textarea>
+        </div>
+
+        <div class="form-group">
+          <label for="disponibilites">Vos disponibilités</label>
+          <textarea id="disponibilites" name="disponibilites" required placeholder="Ex: Lundi et mardi matin, ou jeudi après-midi"></textarea>
+        </div>
+
+        <button type="submit" class="btn" id="submitBtn">
+          📞 Lancer l'appel
+        </button>
+      </form>
+
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('rdvForm');
+    const status = document.getElementById('status');
+    const submitBtn = document.getElementById('submitBtn');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Désactiver le bouton
+      submitBtn.disabled = true;
+      submitBtn.textContent = '⏳ Appel en cours...';
+
+      // Afficher le statut
+      status.className = 'status loading';
+      status.textContent = '📞 Notre assistant appelle ' + document.getElementById('entreprise').value + '...';
+
+      // Récupérer les données du formulaire
+      const formData = {
+        prenom: document.getElementById('prenom').value,
+        nom: document.getElementById('nom').value,
+        telephone: document.getElementById('telephone').value,
+        entreprise: document.getElementById('entreprise').value,
+        numero_entreprise: document.getElementById('numero_entreprise').value,
+        motif: document.getElementById('motif').value,
+        details: document.getElementById('details').value,
+        disponibilites: document.getElementById('disponibilites').value
+      };
+
+      try {
+        const response = await fetch('/.netlify/functions/make-call', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          status.className = 'status success';
+          status.textContent = '✅ Appel lancé ! Vous recevrez un SMS avec le résultat.';
+        } else {
+          throw new Error(result.error || 'Erreur inconnue');
+        }
+      } catch (error) {
+        status.className = 'status error';
+        status.textContent = '❌ Erreur: ' + error.message;
+      }
+
+      // Réactiver le bouton
+      submitBtn.disabled = false;
+      submitBtn.textContent = '📞 Lancer l\'appel';
+    });
+  </script>
+</body>
+</html>

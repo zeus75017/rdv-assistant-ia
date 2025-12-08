@@ -1,0 +1,17 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Redirects pour simplifier les URLs
+[[redirects]]
+  from = "/voice/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/sms/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
