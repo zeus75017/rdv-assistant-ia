@@ -251,7 +251,7 @@
       };
 
       try {
-        const response = await fetch('/.netlify/functions/make-call', {
+        const response = await fetch('/api/make-call', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -263,7 +263,7 @@
 
         if (result.success) {
           status.className = 'status success';
-          status.textContent = '✅ Appel lancé ! Vous recevrez un SMS avec le résultat.';
+          status.textContent = '✅ Appel lancé ! Notre assistant appelle maintenant...';
         } else {
           throw new Error(result.error || 'Erreur inconnue');
         }
