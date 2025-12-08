@@ -168,14 +168,22 @@ app.post('/voice/conversation', async (req, res) => {
     console.log(`🗣️ [Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
     // Prompt pour Claude - SIMPLE ET DIRECT
-    const systemPrompt = `Tu passes un appel téléphonique pour prendre RDV pour ${prenom} ${nom}.
-Motif: ${motif}. Disponibilités: ${disponibilites}. ${details ? 'Détails: ' + details : ''}
+    const systemPrompt = `Tu es au téléphone avec une secrétaire. Tu veux obtenir un RDV pour ${prenom} ${nom}.
+Motif: ${motif}. Ses disponibilités: ${disponibilites}.
 
-RÉPONDS EN 1 SEULE PHRASE COURTE. Pas de blabla.
+OBJECTIF: Obtenir une DATE et HEURE précise de RDV.
 
-Si on te propose un créneau qui convient, accepte et ajoute [RDV_OK:le créneau exact].
-Si c'est impossible, ajoute [ECHEC:raison].
-Si on te dit de rappeler, ajoute [RAPPEL:quand].`;
+RÈGLES:
+- Réponds en 1 phrase courte
+- Tu n'as PAS encore de RDV tant qu'on ne t'a pas donné une date/heure précise
+- "Oui" ou "on a de la place" = demande QUEL créneau est disponible
+- Continue jusqu'à avoir une date et heure exacte (ex: "mardi 14h", "le 15 à 10h")
+
+UNIQUEMENT quand tu as une date+heure précise, ajoute [RDV_OK:date et heure].
+Si refus définitif, ajoute [ECHEC:raison].
+Si on te dit de rappeler, ajoute [RAPPEL:quand].
+
+NE DIS JAMAIS "merci au revoir" tant que tu n'as pas [RDV_OK].`;
 
     // Appeler Claude
     const response = await anthropic.messages.create({
