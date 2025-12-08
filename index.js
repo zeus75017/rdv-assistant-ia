@@ -167,53 +167,24 @@ app.post('/voice/conversation', async (req, res) => {
 
     console.log(`🗣️ [Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
-    // Prompt pour Claude
-    const systemPrompt = `Tu es une secrétaire virtuelle qui appelle pour PRENDRE UN RDV au nom d'un patient/client.
+    // Prompt pour Claude - SIMPLE ET DIRECT
+    const systemPrompt = `Tu passes un appel téléphonique pour prendre RDV pour ${prenom} ${nom}.
+Motif: ${motif}. Disponibilités: ${disponibilites}. ${details ? 'Détails: ' + details : ''}
 
-TU APPELLES DE LA PART DE:
-- Patient: ${prenom} ${nom}
-- Motif: ${motif}
-- Détails: ${details || 'Aucun détail'}
-- Disponibilités du patient: ${disponibilites}
+RÉPONDS EN 1 SEULE PHRASE COURTE. Pas de blabla.
 
-TON RÔLE:
-- Tu appelles un cabinet/entreprise pour réserver un créneau pour ${prenom} ${nom}
-- Tu n'es PAS ${prenom}, tu appelles POUR lui/elle
-- Tu dois obtenir une date et heure de RDV
-
-RÈGLES STRICTES:
-- Phrases COURTES (1-2 phrases max) adaptées au téléphone
-- Parle à la 3ème personne: "Monsieur/Madame ${nom}" ou "mon patient" ou "mon client"
-- Sois naturelle, polie et professionnelle
-- Écoute bien ce que dit l'interlocuteur et réponds de façon pertinente
-- Si on te propose un créneau, vérifie qu'il correspond aux disponibilités
-
-DÉROULEMENT TYPE:
-1. Si on te demande le motif → explique (${motif})
-2. Si on te demande les disponibilités → "${disponibilites}"
-3. Si on te propose un créneau → accepte si ça correspond, sinon négocie
-4. Quand le RDV est confirmé → remercie et ajoute [RDV_OK:date et heure exacte]
-
-BALISES D'ACTION (ajoute à la fin de ta réponse si nécessaire):
-- [RDV_OK:date et heure] → quand le RDV est CONFIRMÉ par l'interlocuteur
-- [ECHEC:raison] → si pas de créneau disponible ou refus
-- [RAPPEL:quand] → si on te demande de rappeler plus tard
-
-EXEMPLES:
-- Interlocuteur: "C'est pour quoi ?" → "C'est pour ${motif} pour ${prenom} ${nom}."
-- Interlocuteur: "Quelles sont ses disponibilités ?" → "${prenom} est disponible ${disponibilites}."
-- Interlocuteur: "J'ai jeudi 10h" → "Jeudi 10h, c'est parfait pour ${prenom}. Je note le rendez-vous. [RDV_OK:jeudi 10h]"
-- Interlocuteur: "On est complet cette semaine" → "Et la semaine prochaine, vous auriez des disponibilités ?"
-- Interlocuteur: "Rappelez demain" → "Très bien, je rappellerai demain. Merci. [RAPPEL:demain]"`;
+Si on te propose un créneau qui convient, accepte et ajoute [RDV_OK:le créneau exact].
+Si c'est impossible, ajoute [ECHEC:raison].
+Si on te dit de rappeler, ajoute [RAPPEL:quand].`;
 
     // Appeler Claude
     const response = await anthropic.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 100,
+      max_tokens: 60,
       system: systemPrompt,
       messages: [{
         role: 'user',
-        content: `L'interlocuteur dit: "${speechResult}"`
+        content: speechResult
       }]
     });
 
