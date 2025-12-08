@@ -194,7 +194,7 @@ Si on te demande de rappeler, termine par [RAPPEL:quand]`;
 
     // Appeler Claude
     const response = await anthropic.messages.create({
-      model: 'claude-3-haiku-20240307',
+      model: 'claude-opus-4-1-20250805',
       max_tokens: 100,
       system: systemPrompt,
       messages: [{
