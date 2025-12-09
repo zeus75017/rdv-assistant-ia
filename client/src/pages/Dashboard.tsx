@@ -114,6 +114,19 @@ export default function Dashboard() {
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
 
+  // Page title based on active tab
+  useEffect(() => {
+    const titles: Record<ActiveTab, string> = {
+      dashboard: 'Rendevo - Dashboard',
+      calls: 'Rendevo - Historique des appels',
+      appointments: 'Rendevo - Rendez-vous',
+      calendar: 'Rendevo - Calendrier',
+      credits: 'Rendevo - Credits',
+      settings: 'Rendevo - Parametres'
+    }
+    document.title = titles[activeTab]
+  }, [activeTab])
+
   // Socket.IO connection
   useEffect(() => {
     if (token) {

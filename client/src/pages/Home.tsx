@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Link } from 'wouter'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
@@ -33,6 +34,11 @@ const scaleIn = {
 
 export default function Home() {
   const { user } = useAuth()
+
+  useEffect(() => {
+    document.title = 'Rendevo - Assistant IA de prise de RDV'
+  }, [])
+
   return (
     <div className="min-h-screen bg-[#fafbfc]">
       {/* Navigation */}

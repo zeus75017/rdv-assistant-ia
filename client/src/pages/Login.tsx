@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'wouter'
 import { motion } from 'framer-motion'
 import { useAuth } from '../context/AuthContext'
@@ -34,6 +34,10 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const [, setLocation] = useLocation()
+
+  useEffect(() => {
+    document.title = 'Rendevo - Connexion'
+  }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

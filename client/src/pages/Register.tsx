@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useSearch } from 'wouter'
 import { useAuth } from '../context/AuthContext'
 import { motion } from 'framer-motion'
@@ -46,6 +46,10 @@ export default function Register() {
   const search = useSearch()
   const params = new URLSearchParams(search)
   const defaultPlan = params.get('plan') || 'pro'
+
+  useEffect(() => {
+    document.title = 'Rendevo - Inscription'
+  }, [])
 
   const [formData, setFormData] = useState({
     prenom: '',
