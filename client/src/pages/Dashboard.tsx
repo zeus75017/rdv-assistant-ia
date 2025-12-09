@@ -1662,7 +1662,6 @@ export default function Dashboard() {
               </div>
 
               {/* Lecteur Audio */}
-              {console.log('Audio debug:', { recording_url: showTranscription.recording_url, call_sid: showTranscription.call_sid })}
               {showTranscription.recording_url && showTranscription.call_sid && (
                 <div className={styles.audioPlayerContainer}>
                   <div className={styles.audioPlayerHeader}>
@@ -1675,7 +1674,7 @@ export default function Dashboard() {
                   <audio
                     controls
                     className={styles.audioPlayer}
-                    src={`${import.meta.env.PROD ? '' : 'http://localhost:3000'}/api/recording-audio/${showTranscription.call_sid}?token=${localStorage.getItem('token')}`}
+                    src={`/api/recording-audio/${showTranscription.call_sid}?token=${localStorage.getItem('token')}`}
                   >
                     Votre navigateur ne supporte pas l'element audio.
                   </audio>
