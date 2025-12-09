@@ -55,6 +55,8 @@ interface Appointment {
   entreprise: string
   rdv_details?: string
   rdvDetails?: string
+  rdv_date?: string
+  rdvDate?: string
   status: string
   created_at?: string
   createdAt?: string
@@ -435,24 +437,24 @@ export default function Dashboard() {
 
   const getAppointmentsForDate = (date: Date) => {
     return appointments.filter(apt => {
+      // Utiliser rdv_date si disponible
+      const rdvDate = apt.rdv_date || apt.rdvDate
+      if (rdvDate) {
+        const aptDate = new Date(rdvDate)
+        return aptDate.toDateString() === date.toDateString()
+      }
+
+      // Fallback: parser la date depuis rdv_details
       const rdvDetails = apt.rdv_details || apt.rdvDetails || ''
-      // Try to parse date from rdv_details (format: "Lundi 15 janvier a 14h30" or similar)
       const dateStr = rdvDetails.toLowerCase()
       const dayOfMonth = date.getDate()
       const monthNames = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre']
       const currentMonth = monthNames[date.getMonth()]
 
-      // Check if the rdv details contain the day number and month
       if (dateStr.includes(String(dayOfMonth)) && dateStr.includes(currentMonth)) {
         return true
       }
 
-      // Also check created_at date as fallback
-      const createdAt = apt.created_at || apt.createdAt
-      if (createdAt) {
-        const aptDate = new Date(createdAt)
-        return aptDate.toDateString() === date.toDateString()
-      }
       return false
     })
   }
@@ -482,21 +484,27 @@ export default function Dashboard() {
     const today = new Date()
     today.setHours(0, 0, 0, 0)
     return appointments.filter(apt => {
-      const createdAt = apt.created_at || apt.createdAt
-      if (createdAt) {
-        const aptDate = new Date(createdAt)
+      // Utiliser rdv_date si disponible, sinon created_at
+      const dateStr = apt.rdv_date || apt.rdvDate || apt.created_at || apt.createdAt
+      if (dateStr) {
+        const aptDate = new Date(dateStr)
         return aptDate >= today
       }
       return false
+    }).sort((a, b) => {
+      const dateA = new Date(a.rdv_date || a.rdvDate || a.created_at || a.createdAt || '')
+      const dateB = new Date(b.rdv_date || b.rdvDate || b.created_at || b.createdAt || '')
+      return dateA.getTime() - dateB.getTime()
     }).slice(0, 5)
   }
 
   const getThisMonthAppointments = () => {
     const now = new Date()
     return appointments.filter(apt => {
-      const createdAt = apt.created_at || apt.createdAt
-      if (createdAt) {
-        const aptDate = new Date(createdAt)
+      // Utiliser rdv_date si disponible, sinon created_at
+      const dateStr = apt.rdv_date || apt.rdvDate || apt.created_at || apt.createdAt
+      if (dateStr) {
+        const aptDate = new Date(dateStr)
         return aptDate.getMonth() === now.getMonth() && aptDate.getFullYear() === now.getFullYear()
       }
       return false

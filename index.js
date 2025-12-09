@@ -22,6 +22,78 @@ const io = new Server(server, {
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
+// Fonction pour parser une date de RDV en texte vers une vraie date
+function parseRdvDate(rdvText) {
+  const text = rdvText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const today = new Date();
+  let targetDate = new Date(today);
+  let hour = 9; // Heure par defaut
+  let minute = 0;
+
+  // Parser l'heure (ex: 10h30, 14h, 9h00)
+  const heureMatch = text.match(/(\d{1,2})\s*h\s*(\d{2})?/);
+  if (heureMatch) {
+    hour = parseInt(heureMatch[1]);
+    minute = heureMatch[2] ? parseInt(heureMatch[2]) : 0;
+  }
+
+  // Jours de la semaine
+  const jours = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const joursSimple = jours.map(j => j.normalize('NFD').replace(/[\u0300-\u036f]/g, ''));
+
+  // Chercher un jour de la semaine
+  let foundDay = -1;
+  for (let i = 0; i < joursSimple.length; i++) {
+    if (text.includes(joursSimple[i])) {
+      foundDay = i;
+      break;
+    }
+  }
+
+  // Mois
+  const mois = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+
+  // Chercher une date explicite (ex: "15 janvier", "le 20")
+  const dateExpliciteMatch = text.match(/(\d{1,2})\s*(janvier|fevrier|mars|avril|mai|juin|juillet|aout|septembre|octobre|novembre|decembre)?/);
+
+  if (dateExpliciteMatch && dateExpliciteMatch[2]) {
+    // Date avec mois (ex: "15 janvier")
+    const jour = parseInt(dateExpliciteMatch[1]);
+    const moisIndex = mois.indexOf(dateExpliciteMatch[2]);
+    targetDate.setMonth(moisIndex);
+    targetDate.setDate(jour);
+    // Si la date est passee, on prend l'annee prochaine
+    if (targetDate < today) {
+      targetDate.setFullYear(targetDate.getFullYear() + 1);
+    }
+  } else if (foundDay !== -1) {
+    // Jour de la semaine (ex: "lundi")
+    const currentDay = today.getDay();
+    let daysToAdd = foundDay - currentDay;
+    if (daysToAdd <= 0) {
+      daysToAdd += 7; // Prochain lundi, pas lundi passe
+    }
+    targetDate.setDate(today.getDate() + daysToAdd);
+  } else if (text.includes('demain')) {
+    targetDate.setDate(today.getDate() + 1);
+  } else if (text.includes('apres-demain') || text.includes('apres demain')) {
+    targetDate.setDate(today.getDate() + 2);
+  } else if (text.includes('aujourd')) {
+    // Aujourd'hui
+  } else if (dateExpliciteMatch && !dateExpliciteMatch[2]) {
+    // Juste un numero de jour sans mois (ex: "le 15")
+    const jour = parseInt(dateExpliciteMatch[1]);
+    targetDate.setDate(jour);
+    // Si la date est passee ce mois-ci, on prend le mois prochain
+    if (targetDate < today) {
+      targetDate.setMonth(targetDate.getMonth() + 1);
+    }
+  }
+
+  targetDate.setHours(hour, minute, 0, 0);
+  return targetDate;
+}
+
 // Stockage des connexions socket par userId
 const userSockets = new Map();
 
@@ -756,6 +828,10 @@ BALISES DE FIN (a ajouter a ta reponse quand approprié):
 
       console.log(`RDV CONFIRME: ${prenom} ${nom} - ${rdvDetails}`);
 
+      // Parser la date du RDV
+      const rdvDate = parseRdvDate(rdvDetails);
+      console.log(`Date du RDV parsee: ${rdvDate.toISOString()}`);
+
       if (userId) {
         const call = await db.getCallByClientName(prenom, nom, 'en_cours');
         if (call) {
@@ -768,7 +844,8 @@ BALISES DE FIN (a ajouter a ta reponse quand approprié):
             clientPrenom: prenom,
             clientNom: nom,
             entreprise: clientInfo.entreprise,
-            rdvDetails
+            rdvDetails,
+            rdvDate
           });
 
           // Notification temps reel

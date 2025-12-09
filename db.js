@@ -65,10 +65,18 @@ async function initDatabase() {
         client_nom VARCHAR(100),
         entreprise VARCHAR(200),
         rdv_details VARCHAR(255),
+        rdv_date TIMESTAMP,
         status VARCHAR(50) DEFAULT 'confirme',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
     `;
+
+    // Ajouter colonne rdv_date si elle n'existe pas
+    try {
+      await sql`ALTER TABLE appointments ADD COLUMN IF NOT EXISTS rdv_date TIMESTAMP`;
+    } catch (e) {
+      // Colonne existe deja
+    }
 
     // Table des notifications
     await sql`
@@ -248,11 +256,11 @@ async function updateCallRecording(callSid, recordingUrl, recordingSid = null) {
 
 // Fonctions rendez-vous
 async function createAppointment(appointmentData) {
-  const { userId, callId, clientPrenom, clientNom, entreprise, rdvDetails } = appointmentData;
+  const { userId, callId, clientPrenom, clientNom, entreprise, rdvDetails, rdvDate } = appointmentData;
 
   const result = await sql`
-    INSERT INTO appointments (user_id, call_id, client_prenom, client_nom, entreprise, rdv_details, status)
-    VALUES (${userId}, ${callId || null}, ${clientPrenom}, ${clientNom}, ${entreprise || null}, ${rdvDetails}, 'confirme')
+    INSERT INTO appointments (user_id, call_id, client_prenom, client_nom, entreprise, rdv_details, rdv_date, status)
+    VALUES (${userId}, ${callId || null}, ${clientPrenom}, ${clientNom}, ${entreprise || null}, ${rdvDetails}, ${rdvDate || null}, 'confirme')
     RETURNING *
   `;
   return result[0];
@@ -260,7 +268,7 @@ async function createAppointment(appointmentData) {
 
 async function getAppointmentsByUserId(userId) {
   const result = await sql`
-    SELECT * FROM appointments WHERE user_id = ${userId} ORDER BY created_at DESC
+    SELECT * FROM appointments WHERE user_id = ${userId} ORDER BY COALESCE(rdv_date, created_at) DESC
   `;
   return result;
 }
