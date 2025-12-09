@@ -1662,6 +1662,7 @@ export default function Dashboard() {
               </div>
 
               {/* Lecteur Audio */}
+              {console.log('Audio debug:', { recording_url: showTranscription.recording_url, call_sid: showTranscription.call_sid })}
               {showTranscription.recording_url && showTranscription.call_sid && (
                 <div className={styles.audioPlayerContainer}>
                   <div className={styles.audioPlayerHeader}>
