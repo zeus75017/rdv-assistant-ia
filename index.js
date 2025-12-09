@@ -1242,16 +1242,17 @@ if (process.env.NODE_ENV === 'production') {
 // ============================================
 const PORT = process.env.PORT || 3000;
 
-async function startServer() {
+// Demarrer le serveur IMMEDIATEMENT pour que Render detecte le port
+server.listen(PORT, '0.0.0.0', async () => {
+  // Log explicite pour Render - DOIT apparaitre en premier
+  console.log(`Server is listening on port ${PORT}`);
+
+  // Initialiser la DB apres que le port soit ouvert
   const dbReady = await db.initDatabase();
   if (!dbReady) {
     console.error('Impossible d\'initialiser la base de donnees');
     process.exit(1);
   }
-
-  server.listen(PORT, '0.0.0.0', () => {
-    // Log explicite pour Render - DOIT apparaitre en premier
-    console.log(`Server is listening on port ${PORT}`);
     console.log(`
 ======================================================
   RENDEVO - Assistant IA de RDV
@@ -1284,7 +1285,4 @@ async function startServer() {
   Notifications: Socket.IO (actif)
 ======================================================
     `);
-  });
-}
-
-startServer();
+});
