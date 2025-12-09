@@ -738,14 +738,16 @@ app.post('/voice/outbound', async (req, res) => {
 
     const { prenom, nom, motif, userId } = clientInfo;
     const callSid = req.body.CallSid;
-    const isRetry = req.query.retry === 'true';
 
-    console.log('Appel connecte pour:', prenom, nom, isRetry ? '(retry)' : '');
-
-    // Enregistrer le debut de la transcription SEULEMENT au premier appel
-    if (callSid && userId && !isRetry) {
-      await db.appendCallTranscription(callSid, `[Debut de l'appel - ${new Date().toLocaleTimeString('fr-FR')}]`);
+    // Verifier si c'est la premiere fois qu'on entre dans outbound pour cet appel
+    let isFirstCall = false;
+    if (callSid) {
+      const call = await db.getCallByCallSid(callSid);
+      // Si pas de transcription ou transcription vide, c'est le premier appel
+      isFirstCall = !call || !call.transcription || call.transcription.trim() === '';
     }
+
+    console.log('Appel connecte pour:', prenom, nom, isFirstCall ? '' : '(suite)');
 
     const motifTexte = motif === 'consultation' ? 'une consultation'
       : motif === 'urgence' ? 'une urgence'
@@ -753,20 +755,25 @@ app.post('/voice/outbound', async (req, res) => {
       : 'un rendez-vous';
 
     let introMessage;
-    if (isRetry) {
-      // Message plus court pour les retries
-      introMessage = 'Allo ? Vous m\'entendez ?';
-    } else {
+
+    if (isFirstCall) {
+      // Premier appel : message complet
+      if (callSid && userId) {
+        await db.appendCallTranscription(callSid, `[Debut de l'appel - ${new Date().toLocaleTimeString('fr-FR')}]`);
+      }
+
       introMessage = `Bonjour, j'appelle pour prendre un rendez-vous pour ${prenom} ${nom}, pour ${motifTexte}.`;
       if (clientInfo.details) {
         introMessage += ` ${clientInfo.details}.`;
       }
       introMessage += ` Auriez-vous des disponibilites ?`;
 
-      // Enregistrer dans la transcription SEULEMENT au premier appel
       if (callSid) {
         await db.appendCallTranscription(callSid, `[IA] ${introMessage}`);
       }
+    } else {
+      // Pas le premier appel : juste relancer l'ecoute
+      introMessage = 'Allo ? Vous m\'entendez ?';
     }
 
     twiml.say({
@@ -782,16 +789,12 @@ app.post('/voice/outbound', async (req, res) => {
       method: 'POST'
     });
 
-    // Si pas de reponse, reessayer une fois puis raccrocher
-    if (isRetry) {
-      twiml.say({
-        language: 'fr-FR',
-        voice: 'Polly.Lea'
-      }, 'Je n\'entends rien, je rappellerai. Au revoir.');
-      twiml.hangup();
-    } else {
-      twiml.redirect(`/voice/outbound?clientInfo=${encodeURIComponent(JSON.stringify(clientInfo))}&retry=true`);
-    }
+    twiml.say({
+      language: 'fr-FR',
+      voice: 'Polly.Lea'
+    }, 'Allo ?');
+
+    twiml.redirect(`/voice/outbound?clientInfo=${encodeURIComponent(JSON.stringify(clientInfo))}`);
 
   } catch (error) {
     console.error('Erreur outbound:', error);
