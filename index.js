@@ -525,10 +525,28 @@ app.get('/api/calls/:callSid/recording', authMiddleware, async (req, res) => {
 });
 
 // Proxy pour l'audio Twilio (telecharge et sert le fichier sans exposer Twilio)
-app.get('/api/recording-audio/:callSid', authMiddleware, async (req, res) => {
+// Accepte le token en query string car les balises audio ne peuvent pas envoyer de headers
+app.get('/api/recording-audio/:callSid', async (req, res) => {
   try {
+    // Authentification via query string ou header
+    const token = req.query.token || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: 'Non autorise' });
+    }
+
+    let user;
+    try {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      user = await db.getUserById(decoded.userId);
+      if (!user) {
+        return res.status(401).json({ error: 'Utilisateur non trouve' });
+      }
+    } catch (err) {
+      return res.status(401).json({ error: 'Token invalide' });
+    }
+
     const call = await db.getCallByCallSid(req.params.callSid);
-    if (!call || call.user_id !== req.user.id) {
+    if (!call || call.user_id !== user.id) {
       return res.status(404).json({ error: 'Appel non trouve' });
     }
 
