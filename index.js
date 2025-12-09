@@ -259,7 +259,22 @@ app.post('/api/make-call', authMiddleware, async (req, res) => {
       return res.status(500).json({ error: 'Configuration serveur manquante (BASE_URL)' });
     }
 
-    console.log('Lancement appel vers:', numero_entreprise);
+    // Formater le numero de telephone (enlever les doublons de +33)
+    let numeroFormate = numero_entreprise.replace(/\s/g, ''); // Enlever espaces
+    // Si le numero commence par +33 suivi de 0, enlever le 0
+    if (numeroFormate.startsWith('+330')) {
+      numeroFormate = '+33' + numeroFormate.slice(4);
+    }
+    // Si le numero commence par 0, le convertir en +33
+    if (numeroFormate.startsWith('0')) {
+      numeroFormate = '+33' + numeroFormate.slice(1);
+    }
+    // Si le numero a un double +33 (ex: +3333...)
+    if (numeroFormate.startsWith('+3333')) {
+      numeroFormate = '+33' + numeroFormate.slice(5);
+    }
+
+    console.log('Lancement appel vers:', numeroFormate);
 
     const clientInfo = encodeURIComponent(JSON.stringify({
       prenom,
@@ -273,7 +288,7 @@ app.post('/api/make-call', authMiddleware, async (req, res) => {
     }));
 
     const call = await twilioClient.calls.create({
-      to: numero_entreprise,
+      to: numeroFormate,
       from: process.env.TWILIO_PHONE_NUMBER,
       url: `${baseUrl}/voice/outbound?clientInfo=${clientInfo}`,
       statusCallback: `${baseUrl}/voice/status`,
@@ -290,7 +305,7 @@ app.post('/api/make-call', authMiddleware, async (req, res) => {
       clientPrenom: prenom,
       clientNom: nom,
       entreprise,
-      numeroEntreprise: numero_entreprise,
+      numeroEntreprise: numeroFormate,
       motif,
       details
     });
@@ -305,7 +320,7 @@ app.post('/api/make-call', authMiddleware, async (req, res) => {
     });
     sendNotification(user.id, notification);
 
-    await db.updateUserCredits(user.id, user.credits_appels - 1);
+    // Ne pas debiter maintenant, attendre le resultat de l'appel
 
     console.log('Appel lance:', callSid);
 
@@ -313,7 +328,7 @@ app.post('/api/make-call', authMiddleware, async (req, res) => {
       success: true,
       callSid: callSid,
       message: 'Appel en cours',
-      creditsRestants: user.credits_appels - 1
+      creditsRestants: user.credits_appels
     });
 
   } catch (error) {
@@ -833,10 +848,46 @@ BALISES DE FIN:
   res.type('text/xml').send(twiml.toString());
 });
 
-app.post('/voice/status', (req, res) => {
-  const { CallStatus, CallSid, CallDuration } = req.body;
-  console.log(`Appel ${CallSid}: ${CallStatus} (${CallDuration || 0}s)`);
-  res.sendStatus(200);
+app.post('/voice/status', async (req, res) => {
+  try {
+    const { CallStatus, CallSid, CallDuration } = req.body;
+    console.log(`Appel ${CallSid}: ${CallStatus} (${CallDuration || 0}s)`);
+
+    const call = await db.getCallByCallSid(CallSid);
+
+    if (call) {
+      // Si l'appel a echoue (failed, busy, no-answer)
+      if (['failed', 'busy', 'no-answer'].includes(CallStatus)) {
+        await db.updateCallStatus(CallSid, 'echec', null, CallStatus === 'failed' ? 'Appel echoue' : CallStatus === 'busy' ? 'Ligne occupee' : 'Pas de reponse');
+
+        // Notification d'echec
+        const notification = await db.createNotification({
+          userId: call.user_id,
+          type: 'call_failed',
+          title: 'Appel echoue',
+          message: `L'appel vers ${call.entreprise} a echoue: ${CallStatus}`,
+          data: { callSid: CallSid, raison: CallStatus }
+        });
+        sendNotification(call.user_id, notification);
+        sendCallUpdate(call.user_id, { callSid: CallSid, status: 'echec', raison: CallStatus });
+
+        console.log(`Appel ${CallSid} echoue - credits non debites`);
+      }
+      // Si l'appel s'est termine normalement (completed), debiter le credit
+      else if (CallStatus === 'completed') {
+        const user = await db.getUserById(call.user_id);
+        if (user && user.credits_appels > 0) {
+          await db.updateUserCredits(call.user_id, user.credits_appels - 1);
+          console.log(`Credit debite pour utilisateur ${call.user_id}`);
+        }
+      }
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error('Erreur webhook status:', error);
+    res.sendStatus(200);
+  }
 });
 
 // Webhook pour recevoir l'URL de l'enregistrement
