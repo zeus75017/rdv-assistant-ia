@@ -750,6 +750,29 @@
   font-size: 0.9rem;
 }
 
+.statsLegend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.statsLegend .legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.statsLegend .legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
 /* Filters Bar */
 .filtersBar {
   display: flex;

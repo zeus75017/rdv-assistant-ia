@@ -654,27 +654,21 @@ export default function Dashboard() {
                     <div className={styles.successRateText}>{successRate}%</div>
                   </div>
                   <p>de RDV confirmes</p>
+                  <div className={styles.statsLegend}>
+                    <div className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: '#10b981' }}></span>
+                      <span>Succes: {stats?.rdvConfirmes || 0}</span>
+                    </div>
+                    <div className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: '#ef4444' }}></span>
+                      <span>Echecs: {stats?.echecs || 0}</span>
+                    </div>
+                    <div className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: '#f59e0b' }}></span>
+                      <span>A rappeler: {stats?.aRappeler || 0}</span>
+                    </div>
+                  </div>
                 </div>
-                {pieData.length > 0 && (
-                  <ResponsiveContainer width="100%" height={150}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={60}
-                        paddingAngle={2}
-                        dataKey="value"
-                      >
-                        {pieData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                )}
               </motion.div>
             </div>
 
