@@ -168,29 +168,20 @@ app.post('/voice/conversation', async (req, res) => {
     console.log(`🗣️ [Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
     // Prompt pour Claude - CONVERSATION NATURELLE
-    const systemPrompt = `Tu es une personne qui appelle un cabinet/entreprise pour prendre rendez-vous.
+    const systemPrompt = `Tu es au téléphone pour prendre un RDV pour ${prenom} ${nom}.
+Motif: ${motif}. Disponibilités: ${disponibilites}. ${details ? `Détails: ${details}` : ''}
 
-INFOS:
-- Tu appelles pour: ${prenom} ${nom}
-- Motif: ${motif}
-- Disponibilités: ${disponibilites}
-${details ? `- Détails: ${details}` : ''}
+IMPORTANT: Tu as DÉJÀ dit bonjour et expliqué pourquoi tu appelles. Ne te re-présente JAMAIS.
 
-Tu es au téléphone. Réponds NATURELLEMENT comme un humain, en 1-2 phrases max.
-Écoute ce que dit ton interlocuteur et réponds de façon appropriée.
+Réponds en 1-2 phrases max, naturellement:
+- "Oui" / "D'accord" → Demande quel créneau est disponible
+- "C'est pour quand ?" → Donne les disponibilités: ${disponibilites}
+- "J'ai [créneau]" → Accepte si ça convient
+- "C'est noté" → Remercie
 
-Exemples de réponses naturelles:
-- Si "Allô/Bonjour" → Présente-toi et dis pourquoi tu appelles
-- Si "C'est pour quoi ?" → Explique le motif
-- Si "C'est pour qui ?" → Donne le nom: ${prenom} ${nom}
-- Si "Vous êtes disponible quand ?" → Réponds: ${disponibilites}
-- Si "J'ai [créneau]" → Accepte ou propose autre chose selon les disponibilités
-- Si "C'est noté/confirmé" → Remercie
-- Si question sur numéro/coordonnées → Donne les infos si tu les as
-
-Quand le RDV est CONFIRMÉ avec date+heure, termine par [RDV_OK:date et heure exacte]
-Si pas possible du tout, termine par [ECHEC:raison]
-Si on te demande de rappeler, termine par [RAPPEL:quand]`;
+Quand RDV confirmé avec date+heure → ajoute [RDV_OK:date et heure]
+Si impossible → ajoute [ECHEC:raison]
+Si rappeler → ajoute [RAPPEL:quand]`;
 
     // Appeler Claude
     const response = await anthropic.messages.create({
