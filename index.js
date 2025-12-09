@@ -524,7 +524,7 @@ app.get('/api/calls/:callSid/recording', authMiddleware, async (req, res) => {
   }
 });
 
-// Proxy pour l'audio Twilio (evite les problemes CORS)
+// Proxy pour l'audio Twilio (telecharge et sert le fichier sans exposer Twilio)
 app.get('/api/recording-audio/:callSid', authMiddleware, async (req, res) => {
   try {
     const call = await db.getCallByCallSid(req.params.callSid);
@@ -536,9 +536,31 @@ app.get('/api/recording-audio/:callSid', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Aucun enregistrement disponible' });
     }
 
-    // Rediriger vers l'URL Twilio avec authentification
+    // Telecharger depuis Twilio avec authentification
     const recordingUrl = call.recording_url + '.mp3';
-    res.redirect(recordingUrl);
+    const authString = Buffer.from(`${process.env.TWILIO_ACCOUNT_SID}:${process.env.TWILIO_AUTH_TOKEN}`).toString('base64');
+
+    const response = await fetch(recordingUrl, {
+      headers: {
+        'Authorization': `Basic ${authString}`
+      }
+    });
+
+    if (!response.ok) {
+      console.error('Erreur Twilio:', response.status, response.statusText);
+      return res.status(404).json({ error: 'Enregistrement non disponible' });
+    }
+
+    // Servir le fichier audio directement
+    res.set({
+      'Content-Type': 'audio/mpeg',
+      'Content-Disposition': `inline; filename="enregistrement-${req.params.callSid}.mp3"`,
+      'Cache-Control': 'private, max-age=3600'
+    });
+
+    // Streamer la reponse
+    const arrayBuffer = await response.arrayBuffer();
+    res.send(Buffer.from(arrayBuffer));
   } catch (error) {
     console.error('Erreur proxy audio:', error);
     res.status(500).json({ error: 'Erreur serveur' });
