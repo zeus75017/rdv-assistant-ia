@@ -925,8 +925,8 @@ BALISES DE FIN (a ajouter a ta reponse quand approprié):
     });
 
     const response = await anthropic.messages.create({
-      model: 'claude-opus-4-1-20250805',
-      max_tokens: 100,
+      model: 'claude-3-5-haiku-20241022',
+      max_tokens: 80,
       system: systemPrompt,
       messages: messages
     });
