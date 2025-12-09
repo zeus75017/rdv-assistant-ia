@@ -1214,7 +1214,7 @@ async function startServer() {
     process.exit(1);
   }
 
-  server.listen(PORT, () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`
 ======================================================
   RENDEVO - Assistant IA de RDV
