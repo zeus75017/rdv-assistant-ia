@@ -190,16 +190,54 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
 
+// Fonction pour formater un numero de telephone au format E.164
+function formatPhoneE164(phone) {
+  if (!phone) return null;
+
+  // Enlever tous les espaces et caracteres non numeriques sauf +
+  let cleaned = phone.replace(/[^\d+]/g, '');
+
+  // Si commence par 0, convertir en +33
+  if (cleaned.startsWith('0')) {
+    cleaned = '+33' + cleaned.slice(1);
+  }
+
+  // Si pas de +, ajouter +33
+  if (!cleaned.startsWith('+')) {
+    cleaned = '+33' + cleaned;
+  }
+
+  // Corriger les doublons +33
+  if (cleaned.startsWith('+330')) {
+    cleaned = '+33' + cleaned.slice(4);
+  }
+  if (cleaned.startsWith('+3333')) {
+    cleaned = '+33' + cleaned.slice(5);
+  }
+
+  return cleaned;
+}
+
 // Fonction pour envoyer un SMS de confirmation de RDV
 async function sendRdvConfirmationSms(telephone, entreprise, rdvDate) {
   try {
+    // Formater le numero au format E.164
+    const numeroFormate = formatPhoneE164(telephone);
+
+    if (!numeroFormate || numeroFormate.length < 12) {
+      console.error('Numero de telephone invalide:', telephone);
+      return null;
+    }
+
     const dateFormatee = formatDateFr(rdvDate);
     const message = `Rendevo : Votre RDV est confirme chez ${entreprise} le ${dateFormatee}`;
+
+    console.log(`Envoi SMS a ${numeroFormate}...`);
 
     const sms = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
-      to: telephone
+      to: numeroFormate
     });
 
     console.log(`SMS envoye: ${sms.sid} - Status: ${sms.status}`);

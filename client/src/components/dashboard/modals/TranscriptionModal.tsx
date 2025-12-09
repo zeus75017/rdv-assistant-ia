@@ -125,14 +125,14 @@ export default function TranscriptionModal({
             <h3 className="text-[0.85rem] font-semibold text-[#64748b] mb-4 uppercase tracking-wider">Transcription</h3>
             <div className="bg-[#f8fafc] rounded-xl p-4 space-y-3 border border-[#e2e8f0]">
               {call.transcription ? (
-                call.transcription.split('\n').map((line, i) => {
+                call.transcription.split('\n').filter(line => line.trim()).map((line, i) => {
                   let bgClass = 'bg-white'
                   let textClass = 'text-[#374151]'
 
-                  if (line.startsWith('[IA]')) {
+                  if (line.includes('[IA]')) {
                     bgClass = 'bg-[#f0f9ff]'
                     textClass = 'text-[#1e40af]'
-                  } else if (line.startsWith('[Receptionniste]')) {
+                  } else if (line.includes('[Receptionniste]')) {
                     bgClass = 'bg-[#ecfdf5]'
                     textClass = 'text-[#065f46]'
                   }
