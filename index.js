@@ -1215,6 +1215,8 @@ async function startServer() {
   }
 
   server.listen(PORT, '0.0.0.0', () => {
+    // Log explicite pour Render - DOIT apparaitre en premier
+    console.log(`Server is listening on port ${PORT}`);
     console.log(`
 ======================================================
   RENDEVO - Assistant IA de RDV
