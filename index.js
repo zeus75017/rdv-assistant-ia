@@ -609,11 +609,12 @@ app.get('/api/recording-audio/:callSid', async (req, res) => {
     let user;
     try {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      user = await db.getUserById(decoded.userId);
+      user = await db.getUserById(decoded.id);
       if (!user) {
         return res.status(401).json({ error: 'Utilisateur non trouve' });
       }
     } catch (err) {
+      console.error('Erreur verification token:', err.message);
       return res.status(401).json({ error: 'Token invalide' });
     }
 

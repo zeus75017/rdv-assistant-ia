@@ -123,7 +123,9 @@ export default function Dashboard() {
   // Connexion Socket.IO
   useEffect(() => {
     if (token) {
-      const newSocket = io('http://localhost:3000')
+      // En production, se connecter au meme domaine
+      const socketUrl = import.meta.env.PROD ? window.location.origin : 'http://localhost:3000'
+      const newSocket = io(socketUrl)
       setSocket(newSocket)
 
       newSocket.on('connect', () => {
