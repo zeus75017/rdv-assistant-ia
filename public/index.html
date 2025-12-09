@@ -3,8 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RDV Assistant - Prenez vos rendez-vous automatiquement</title>
+  <title>Rendevo - Votre assistant IA qui prend vos rendez-vous</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #818cf8;
+      --secondary: #0ea5e9;
+      --accent: #f59e0b;
+      --dark: #0f172a;
+      --dark-light: #1e293b;
+      --gray: #64748b;
+      --gray-light: #94a3b8;
+      --light: #f1f5f9;
+      --white: #ffffff;
+      --success: #10b981;
+      --gradient: linear-gradient(135deg, #6366f1 0%, #0ea5e9 100%);
+    }
+
     * {
       margin: 0;
       padding: 0;
@@ -12,270 +31,1088 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      padding: 20px;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--white);
+      color: var(--dark);
+      line-height: 1.6;
     }
 
-    .container {
-      max-width: 500px;
+    /* Navigation */
+    .navbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding: 1rem 2rem;
+    }
+
+    .nav-container {
+      max-width: 1200px;
       margin: 0 auto;
-    }
-
-    .card {
-      background: white;
-      border-radius: 20px;
-      padding: 40px 30px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .logo {
-      text-align: center;
-      margin-bottom: 30px;
+      font-size: 1.5rem;
+      font-weight: 800;
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
     }
 
-    .logo h1 {
-      font-size: 28px;
-      color: #333;
+    .nav-links {
+      display: flex;
+      gap: 2rem;
+      align-items: center;
     }
 
-    .logo p {
-      color: #666;
-      margin-top: 5px;
+    .nav-links a {
+      text-decoration: none;
+      color: var(--gray);
+      font-weight: 500;
+      transition: color 0.3s;
     }
 
-    .form-group {
-      margin-bottom: 20px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-weight: 600;
-      color: #333;
-    }
-
-    input, select, textarea {
-      width: 100%;
-      padding: 15px;
-      border: 2px solid #e0e0e0;
-      border-radius: 10px;
-      font-size: 16px;
-      transition: border-color 0.3s;
-    }
-
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      border-color: #667eea;
-    }
-
-    textarea {
-      resize: vertical;
-      min-height: 80px;
+    .nav-links a:hover {
+      color: var(--primary);
     }
 
     .btn {
-      width: 100%;
-      padding: 18px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      border: none;
-      border-radius: 10px;
-      font-size: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
       font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s;
+      border: none;
       cursor: pointer;
-      transition: transform 0.2s, box-shadow 0.2s;
+      font-size: 1rem;
     }
 
-    .btn:hover {
+    .btn-primary {
+      background: var(--gradient);
+      color: white;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
     }
 
-    .btn:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      transform: none;
+    .btn-secondary {
+      background: var(--light);
+      color: var(--dark);
     }
 
-    .status {
-      margin-top: 20px;
-      padding: 15px;
-      border-radius: 10px;
-      text-align: center;
-      display: none;
+    .btn-secondary:hover {
+      background: var(--dark);
+      color: white;
     }
 
-    .status.loading {
-      display: block;
-      background: #fff3cd;
-      color: #856404;
+    .btn-outline {
+      background: transparent;
+      border: 2px solid var(--primary);
+      color: var(--primary);
     }
 
-    .status.success {
-      display: block;
-      background: #d4edda;
-      color: #155724;
+    .btn-outline:hover {
+      background: var(--primary);
+      color: white;
     }
 
-    .status.error {
-      display: block;
-      background: #f8d7da;
-      color: #721c24;
+    /* Hero Section */
+    .hero {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 2rem 4rem;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+      position: relative;
+      overflow: hidden;
     }
 
-    .info-box {
-      background: #f0f4ff;
-      border-radius: 10px;
-      padding: 15px;
-      margin-bottom: 25px;
-      font-size: 14px;
-      color: #4a5568;
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
     }
 
-    .info-box strong {
-      color: #667eea;
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -30%;
+      left: -10%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
     }
 
-    .two-cols {
+    .hero-container {
+      max-width: 1200px;
+      margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 15px;
+      gap: 4rem;
+      align-items: center;
+      position: relative;
+      z-index: 1;
     }
 
-    @media (max-width: 500px) {
-      .two-cols {
+    .hero-content h1 {
+      font-size: 3.5rem;
+      font-weight: 800;
+      line-height: 1.1;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-content h1 span {
+      background: var(--gradient);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-content p {
+      font-size: 1.25rem;
+      color: var(--gray);
+      margin-bottom: 2rem;
+      max-width: 500px;
+    }
+
+    .hero-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 3rem;
+    }
+
+    .hero-stats {
+      display: flex;
+      gap: 3rem;
+    }
+
+    .stat {
+      text-align: left;
+    }
+
+    .stat-number {
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--gray);
+    }
+
+    .hero-visual {
+      position: relative;
+    }
+
+    .hero-card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+      position: relative;
+    }
+
+    .hero-card-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .hero-card-avatar {
+      width: 50px;
+      height: 50px;
+      background: var(--gradient);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+    }
+
+    .hero-card-info h4 {
+      font-weight: 600;
+    }
+
+    .hero-card-info p {
+      font-size: 0.875rem;
+      color: var(--gray);
+      margin: 0;
+    }
+
+    .conversation {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .message {
+      padding: 1rem 1.25rem;
+      border-radius: 1rem;
+      max-width: 85%;
+      font-size: 0.95rem;
+    }
+
+    .message.ai {
+      background: var(--light);
+      align-self: flex-start;
+      border-bottom-left-radius: 0.25rem;
+    }
+
+    .message.human {
+      background: var(--gradient);
+      color: white;
+      align-self: flex-end;
+      border-bottom-right-radius: 0.25rem;
+    }
+
+    .typing {
+      display: flex;
+      gap: 0.3rem;
+      padding: 1rem;
+      background: var(--light);
+      border-radius: 1rem;
+      align-self: flex-start;
+      width: fit-content;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      background: var(--gray-light);
+      border-radius: 50%;
+      animation: typing 1.4s infinite;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typing {
+      0%, 100% { opacity: 0.3; transform: scale(0.8); }
+      50% { opacity: 1; transform: scale(1); }
+    }
+
+    .floating-badge {
+      position: absolute;
+      background: white;
+      padding: 0.75rem 1rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+
+    .floating-badge.top-right {
+      top: -1rem;
+      right: -1rem;
+    }
+
+    .floating-badge.bottom-left {
+      bottom: -1rem;
+      left: -1rem;
+    }
+
+    .badge-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+
+    /* Features Section */
+    .features {
+      padding: 6rem 2rem;
+      background: white;
+    }
+
+    .section-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 4rem;
+    }
+
+    .section-tag {
+      display: inline-block;
+      padding: 0.5rem 1rem;
+      background: rgba(99, 102, 241, 0.1);
+      color: var(--primary);
+      border-radius: 2rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .section-header h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .section-header p {
+      font-size: 1.125rem;
+      color: var(--gray);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .feature-card {
+      padding: 2rem;
+      border-radius: 1rem;
+      background: var(--light);
+      transition: all 0.3s;
+    }
+
+    .feature-card:hover {
+      background: white;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      transform: translateY(-5px);
+    }
+
+    .feature-icon {
+      width: 60px;
+      height: 60px;
+      background: var(--gradient);
+      border-radius: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+    }
+
+    .feature-card p {
+      color: var(--gray);
+      font-size: 0.95rem;
+    }
+
+    /* How it works */
+    .how-it-works {
+      padding: 6rem 2rem;
+      background: var(--dark);
+      color: white;
+    }
+
+    .how-it-works .section-header h2 {
+      color: white;
+    }
+
+    .how-it-works .section-header p {
+      color: var(--gray-light);
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2rem;
+      position: relative;
+    }
+
+    .steps::before {
+      content: '';
+      position: absolute;
+      top: 40px;
+      left: 10%;
+      right: 10%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      z-index: 0;
+    }
+
+    .step {
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-number {
+      width: 80px;
+      height: 80px;
+      background: var(--gradient);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      font-weight: 800;
+      margin: 0 auto 1.5rem;
+      border: 4px solid var(--dark);
+    }
+
+    .step h4 {
+      font-size: 1.125rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .step p {
+      color: var(--gray-light);
+      font-size: 0.875rem;
+    }
+
+    /* Pricing */
+    .pricing {
+      padding: 6rem 2rem;
+      background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+      margin-top: 3rem;
+    }
+
+    .pricing-card {
+      background: white;
+      border-radius: 1.5rem;
+      padding: 2.5rem;
+      border: 2px solid var(--light);
+      transition: all 0.3s;
+      position: relative;
+    }
+
+    .pricing-card:hover {
+      border-color: var(--primary);
+    }
+
+    .pricing-card.popular {
+      border-color: var(--primary);
+      transform: scale(1.05);
+      box-shadow: 0 25px 50px rgba(99, 102, 241, 0.2);
+    }
+
+    .popular-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gradient);
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 2rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    .pricing-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--light);
+    }
+
+    .pricing-header h3 {
+      font-size: 1.25rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pricing-header .price {
+      font-size: 3rem;
+      font-weight: 800;
+    }
+
+    .pricing-header .price span {
+      font-size: 1rem;
+      font-weight: 400;
+      color: var(--gray);
+    }
+
+    .pricing-features {
+      list-style: none;
+      margin-bottom: 2rem;
+    }
+
+    .pricing-features li {
+      padding: 0.75rem 0;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      color: var(--gray);
+    }
+
+    .pricing-features li::before {
+      content: '✓';
+      width: 20px;
+      height: 20px;
+      background: rgba(16, 185, 129, 0.1);
+      color: var(--success);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .pricing-card .btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    /* Testimonials */
+    .testimonials {
+      padding: 6rem 2rem;
+      background: white;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2rem;
+    }
+
+    .testimonial-card {
+      background: var(--light);
+      border-radius: 1.5rem;
+      padding: 2rem;
+    }
+
+    .testimonial-rating {
+      color: var(--accent);
+      font-size: 1.25rem;
+      margin-bottom: 1rem;
+    }
+
+    .testimonial-text {
+      font-size: 1rem;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .testimonial-avatar {
+      width: 48px;
+      height: 48px;
+      background: var(--gradient);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: 700;
+    }
+
+    .testimonial-info h5 {
+      font-weight: 600;
+    }
+
+    .testimonial-info p {
+      font-size: 0.875rem;
+      color: var(--gray);
+      margin: 0;
+    }
+
+    /* CTA Section */
+    .cta {
+      padding: 6rem 2rem;
+      background: var(--gradient);
+      text-align: center;
+      color: white;
+    }
+
+    .cta h2 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+
+    .cta p {
+      font-size: 1.25rem;
+      opacity: 0.9;
+      margin-bottom: 2rem;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .cta .btn {
+      background: white;
+      color: var(--primary);
+    }
+
+    .cta .btn:hover {
+      background: var(--dark);
+      color: white;
+    }
+
+    /* Footer */
+    .footer {
+      background: var(--dark);
+      color: white;
+      padding: 4rem 2rem 2rem;
+    }
+
+    .footer-container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr 1fr;
+      gap: 4rem;
+      margin-bottom: 3rem;
+    }
+
+    .footer-brand .logo {
+      margin-bottom: 1rem;
+    }
+
+    .footer-brand p {
+      color: var(--gray-light);
+      font-size: 0.95rem;
+    }
+
+    .footer-links h4 {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .footer-links a {
+      display: block;
+      color: var(--gray-light);
+      text-decoration: none;
+      padding: 0.5rem 0;
+      font-size: 0.95rem;
+      transition: color 0.3s;
+    }
+
+    .footer-links a:hover {
+      color: white;
+    }
+
+    .footer-bottom {
+      border-top: 1px solid var(--dark-light);
+      padding-top: 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: var(--gray-light);
+      font-size: 0.875rem;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .hero-container {
         grid-template-columns: 1fr;
+        text-align: center;
+      }
+
+      .hero-content p {
+        margin: 0 auto 2rem;
+      }
+
+      .hero-buttons {
+        justify-content: center;
+      }
+
+      .hero-stats {
+        justify-content: center;
+      }
+
+      .hero-visual {
+        display: none;
+      }
+
+      .features-grid,
+      .pricing-grid,
+      .testimonials-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .steps {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .steps::before {
+        display: none;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .nav-links {
+        display: none;
+      }
+
+      .hero-content h1 {
+        font-size: 2.5rem;
+      }
+
+      .section-header h2 {
+        font-size: 2rem;
+      }
+
+      .steps {
+        grid-template-columns: 1fr;
+      }
+
+      .pricing-card.popular {
+        transform: none;
+      }
+
+      .footer-grid {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+      }
+
+      .footer-bottom {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
       }
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="card">
-      <div class="logo">
-        <h1>📞 RDV Assistant</h1>
-        <p>Notre IA appelle pour vous</p>
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="logo">Rendevo</div>
+      <div class="nav-links">
+        <a href="#features">Fonctionnalités</a>
+        <a href="#how-it-works">Comment ça marche</a>
+        <a href="#pricing">Tarifs</a>
+        <a href="login.html" class="btn btn-secondary">Connexion</a>
+        <a href="register.html" class="btn btn-primary">Commencer</a>
       </div>
-
-      <div class="info-box">
-        <strong>Comment ça marche ?</strong><br>
-        Entrez vos informations et le numéro à appeler. Notre assistant IA va appeler et prendre rendez-vous pour vous !
-      </div>
-
-      <form id="rdvForm">
-        <div class="two-cols">
-          <div class="form-group">
-            <label for="prenom">Prénom</label>
-            <input type="text" id="prenom" name="prenom" required placeholder="Jean">
-          </div>
-
-          <div class="form-group">
-            <label for="nom">Nom</label>
-            <input type="text" id="nom" name="nom" required placeholder="Dupont">
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label for="telephone">Votre téléphone (pour confirmation)</label>
-          <input type="tel" id="telephone" name="telephone" required placeholder="+33612345678">
-        </div>
-
-        <div class="form-group">
-          <label for="entreprise">Nom de l'entreprise à appeler</label>
-          <input type="text" id="entreprise" name="entreprise" required placeholder="Cabinet dentaire Dr Martin">
-        </div>
-
-        <div class="form-group">
-          <label for="numero_entreprise">Numéro à appeler</label>
-          <input type="tel" id="numero_entreprise" name="numero_entreprise" required placeholder="+33123456789">
-        </div>
-
-        <div class="form-group">
-          <label for="motif">Motif du rendez-vous</label>
-          <select id="motif" name="motif" required>
-            <option value="">Sélectionnez un motif</option>
-            <option value="consultation">Consultation générale</option>
-            <option value="urgence">Urgence</option>
-            <option value="suivi">Suivi / Contrôle</option>
-            <option value="autre">Autre</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label for="details">Détails supplémentaires (optionnel)</label>
-          <textarea id="details" name="details" placeholder="Ex: Je préfère le matin, douleur depuis 2 jours..."></textarea>
-        </div>
-
-        <div class="form-group">
-          <label for="disponibilites">Vos disponibilités</label>
-          <textarea id="disponibilites" name="disponibilites" required placeholder="Ex: Lundi et mardi matin, ou jeudi après-midi"></textarea>
-        </div>
-
-        <button type="submit" class="btn" id="submitBtn">
-          📞 Lancer l'appel
-        </button>
-      </form>
-
-      <div id="status" class="status"></div>
     </div>
-  </div>
+  </nav>
 
-  <script>
-    const form = document.getElementById('rdvForm');
-    const status = document.getElementById('status');
-    const submitBtn = document.getElementById('submitBtn');
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-container">
+      <div class="hero-content">
+        <h1>Vos rendez-vous pris <span>automatiquement</span> par l'IA</h1>
+        <p>Rendevo appelle pour vous et prend vos rendez-vous médicaux, professionnels ou personnels. Gagnez du temps, notre IA s'occupe de tout.</p>
+        <div class="hero-buttons">
+          <a href="register.html" class="btn btn-primary">
+            Essayer gratuitement
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a href="#how-it-works" class="btn btn-outline">Voir la démo</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat">
+            <div class="stat-number">10k+</div>
+            <div class="stat-label">RDV pris</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">98%</div>
+            <div class="stat-label">Taux de succès</div>
+          </div>
+          <div class="stat">
+            <div class="stat-number">2min</div>
+            <div class="stat-label">Temps moyen</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-visual">
+        <div class="hero-card">
+          <div class="floating-badge top-right">
+            <div class="badge-icon">✓</div>
+            RDV Confirmé
+          </div>
+          <div class="hero-card-header">
+            <div class="hero-card-avatar">🤖</div>
+            <div class="hero-card-info">
+              <h4>Assistant Rendevo</h4>
+              <p>En appel...</p>
+            </div>
+          </div>
+          <div class="conversation">
+            <div class="message ai">Bonjour, j'appelle pour prendre un rendez-vous pour M. Dupont...</div>
+            <div class="message human">Oui, j'ai jeudi 14h</div>
+            <div class="message ai">Parfait, jeudi 14h lui convient très bien. Merci !</div>
+          </div>
+          <div class="floating-badge bottom-left">
+            <span>⏱️</span>
+            47 secondes
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Fonctionnalités</div>
+        <h2>Tout ce dont vous avez besoin</h2>
+        <p>Une solution complète pour automatiser toutes vos prises de rendez-vous</p>
+      </div>
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon">📞</div>
+          <h3>Appels automatiques</h3>
+          <p>Notre IA appelle directement les cabinets et entreprises pour prendre rendez-vous à votre place.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🧠</div>
+          <h3>IA Conversationnelle</h3>
+          <p>Conversations naturelles et intelligentes. L'IA répond à toutes les questions comme un humain.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">⚡</div>
+          <h3>Résultats instantanés</h3>
+          <p>Recevez la confirmation de votre rendez-vous en quelques minutes seulement.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📅</div>
+          <h3>Tous types de RDV</h3>
+          <p>Médecin, dentiste, coiffeur, garagiste... Rendevo s'adapte à tous vos besoins.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">🔔</div>
+          <h3>Notifications</h3>
+          <p>Soyez notifié par SMS ou email dès que votre rendez-vous est confirmé.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon">📊</div>
+          <h3>Historique complet</h3>
+          <p>Retrouvez tous vos rendez-vous passés et à venir dans votre tableau de bord.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      // Désactiver le bouton
-      submitBtn.disabled = true;
-      submitBtn.textContent = '⏳ Appel en cours...';
+  <!-- How it works -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Simple</div>
+        <h2>Comment ça marche ?</h2>
+        <p>Prenez un rendez-vous en 4 étapes simples</p>
+      </div>
+      <div class="steps">
+        <div class="step">
+          <div class="step-number">1</div>
+          <h4>Remplissez le formulaire</h4>
+          <p>Indiquez vos informations et le type de rendez-vous souhaité</p>
+        </div>
+        <div class="step">
+          <div class="step-number">2</div>
+          <h4>L'IA appelle</h4>
+          <p>Notre assistant contacte l'établissement pour vous</p>
+        </div>
+        <div class="step">
+          <div class="step-number">3</div>
+          <h4>Négociation</h4>
+          <p>L'IA trouve le créneau qui correspond à vos disponibilités</p>
+        </div>
+        <div class="step">
+          <div class="step-number">4</div>
+          <h4>Confirmation</h4>
+          <p>Recevez les détails de votre rendez-vous par notification</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      // Afficher le statut
-      status.className = 'status loading';
-      status.textContent = '📞 Notre assistant appelle ' + document.getElementById('entreprise').value + '...';
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Tarifs</div>
+        <h2>Choisissez votre formule</h2>
+        <p>Des offres adaptées à tous vos besoins</p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Starter</h3>
+            <div class="price">9€<span>/mois</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li>5 appels par mois</li>
+            <li>Notifications email</li>
+            <li>Historique 30 jours</li>
+            <li>Support par email</li>
+          </ul>
+          <a href="register.html?plan=starter" class="btn btn-outline">Choisir Starter</a>
+        </div>
+        <div class="pricing-card popular">
+          <div class="popular-badge">Plus populaire</div>
+          <div class="pricing-header">
+            <h3>Pro</h3>
+            <div class="price">29€<span>/mois</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li>30 appels par mois</li>
+            <li>Notifications SMS + email</li>
+            <li>Historique illimité</li>
+            <li>Support prioritaire</li>
+            <li>Rappels automatiques</li>
+          </ul>
+          <a href="register.html?plan=pro" class="btn btn-primary">Choisir Pro</a>
+        </div>
+        <div class="pricing-card">
+          <div class="pricing-header">
+            <h3>Business</h3>
+            <div class="price">99€<span>/mois</span></div>
+          </div>
+          <ul class="pricing-features">
+            <li>Appels illimités</li>
+            <li>API personnalisée</li>
+            <li>Multi-utilisateurs</li>
+            <li>Account manager dédié</li>
+            <li>Intégrations CRM</li>
+          </ul>
+          <a href="register.html?plan=business" class="btn btn-outline">Choisir Business</a>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      // Récupérer les données du formulaire
-      const formData = {
-        prenom: document.getElementById('prenom').value,
-        nom: document.getElementById('nom').value,
-        telephone: document.getElementById('telephone').value,
-        entreprise: document.getElementById('entreprise').value,
-        numero_entreprise: document.getElementById('numero_entreprise').value,
-        motif: document.getElementById('motif').value,
-        details: document.getElementById('details').value,
-        disponibilites: document.getElementById('disponibilites').value
-      };
+  <!-- Testimonials -->
+  <section class="testimonials">
+    <div class="section-container">
+      <div class="section-header">
+        <div class="section-tag">Témoignages</div>
+        <h2>Ils nous font confiance</h2>
+        <p>Découvrez ce que nos utilisateurs pensent de Rendevo</p>
+      </div>
+      <div class="testimonials-grid">
+        <div class="testimonial-card">
+          <div class="testimonial-rating">★★★★★</div>
+          <p class="testimonial-text">"Incroyable ! J'ai obtenu un RDV chez mon dermato en 2 minutes alors que j'attendais depuis des semaines."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">SL</div>
+            <div class="testimonial-info">
+              <h5>Sophie Laurent</h5>
+              <p>Paris</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-rating">★★★★★</div>
+          <p class="testimonial-text">"Je déteste passer des appels. Rendevo a changé ma vie, je n'ai plus à stresser pour prendre mes RDV."</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">TM</div>
+            <div class="testimonial-info">
+              <h5>Thomas Martin</h5>
+              <p>Lyon</p>
+            </div>
+          </div>
+        </div>
+        <div class="testimonial-card">
+          <div class="testimonial-rating">★★★★★</div>
+          <p class="testimonial-text">"L'IA est bluffante de naturel. La secrétaire n'a même pas remarqué que ce n'était pas moi !"</p>
+          <div class="testimonial-author">
+            <div class="testimonial-avatar">MB</div>
+            <div class="testimonial-info">
+              <h5>Marie Bernard</h5>
+              <p>Marseille</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-      try {
-        const response = await fetch('/api/make-call', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(formData)
-        });
+  <!-- CTA -->
+  <section class="cta">
+    <div class="section-container">
+      <h2>Prêt à gagner du temps ?</h2>
+      <p>Rejoignez des milliers d'utilisateurs qui ont déjà simplifié leur prise de rendez-vous</p>
+      <a href="register.html" class="btn">
+        Commencer gratuitement
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M5 12h14M12 5l7 7-7 7"/>
+        </svg>
+      </a>
+    </div>
+  </section>
 
-        const result = await response.json();
-
-        if (result.success) {
-          status.className = 'status success';
-          status.textContent = '✅ Appel lancé ! Notre assistant appelle maintenant...';
-        } else {
-          throw new Error(result.error || 'Erreur inconnue');
-        }
-      } catch (error) {
-        status.className = 'status error';
-        status.textContent = '❌ Erreur: ' + error.message;
-      }
-
-      // Réactiver le bouton
-      submitBtn.disabled = false;
-      submitBtn.textContent = '📞 Lancer l\'appel';
-    });
-  </script>
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <div class="logo">Rendevo</div>
+          <p>L'assistant IA qui prend vos rendez-vous automatiquement. Gagnez du temps, simplifiez votre vie.</p>
+        </div>
+        <div class="footer-links">
+          <h4>Produit</h4>
+          <a href="#features">Fonctionnalités</a>
+          <a href="#pricing">Tarifs</a>
+          <a href="#how-it-works">Comment ça marche</a>
+        </div>
+        <div class="footer-links">
+          <h4>Entreprise</h4>
+          <a href="#">À propos</a>
+          <a href="#">Blog</a>
+          <a href="#">Carrières</a>
+        </div>
+        <div class="footer-links">
+          <h4>Légal</h4>
+          <a href="#">Conditions d'utilisation</a>
+          <a href="#">Politique de confidentialité</a>
+          <a href="#">Mentions légales</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>© 2025 Rendevo. Tous droits réservés.</p>
+        <p>Fait avec ❤️ en France</p>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
