@@ -22,6 +22,20 @@ const io = new Server(server, {
 
 const VoiceResponse = twilio.twiml.VoiceResponse;
 
+// Fonction pour formater une date en francais (ex: "27 octobre a 14h30")
+function formatDateFr(date) {
+  const mois = ['janvier', 'fevrier', 'mars', 'avril', 'mai', 'juin', 'juillet', 'aout', 'septembre', 'octobre', 'novembre', 'decembre'];
+  const jour = date.getDate();
+  const moisNom = mois[date.getMonth()];
+  const heure = date.getHours();
+  const minutes = date.getMinutes();
+
+  if (minutes === 0) {
+    return `${jour} ${moisNom} a ${heure}h`;
+  }
+  return `${jour} ${moisNom} a ${heure}h${minutes.toString().padStart(2, '0')}`;
+}
+
 // Fonction pour parser une date de RDV en texte vers une vraie date
 function parseRdvDate(rdvText) {
   const text = rdvText.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
@@ -172,6 +186,26 @@ const twilioClient = twilio(
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY
 });
+
+// Fonction pour envoyer un SMS de confirmation de RDV
+async function sendRdvConfirmationSms(telephone, entreprise, rdvDate) {
+  try {
+    const dateFormatee = formatDateFr(rdvDate);
+    const message = `Rendevo : Votre RDV est confirme chez ${entreprise} le ${dateFormatee}`;
+
+    const sms = await twilioClient.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: telephone
+    });
+
+    console.log(`SMS envoye: ${sms.sid} - Status: ${sms.status}`);
+    return sms;
+  } catch (error) {
+    console.error('Erreur envoi SMS:', error.message);
+    return null;
+  }
+}
 
 // ============================================
 // SERVIR LE CLIENT REACT
@@ -859,6 +893,11 @@ BALISES DE FIN (a ajouter a ta reponse quand approprié):
           });
           sendNotification(parseInt(userId), notification);
           sendCallUpdate(parseInt(userId), { callSid: call.call_sid, status: 'succes', rdvDetails });
+
+          // Envoyer SMS de confirmation au client
+          if (clientInfo.telephone) {
+            await sendRdvConfirmationSms(clientInfo.telephone, clientInfo.entreprise, rdvDate);
+          }
         }
       }
 
