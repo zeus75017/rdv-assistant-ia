@@ -627,49 +627,76 @@ app.post('/voice/conversation', async (req, res) => {
 
     console.log(`[Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
+    // Recuperer l'historique de la conversation
+    let conversationHistory = [];
+    if (callSid) {
+      const call = await db.getCallByCallSid(callSid);
+      if (call && call.transcription) {
+        // Parser la transcription pour construire l'historique
+        const lines = call.transcription.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          if (line.includes('[IA]')) {
+            const content = line.replace('[IA]', '').trim();
+            if (content) conversationHistory.push({ role: 'assistant', content });
+          } else if (line.includes('[Receptionniste]')) {
+            const content = line.replace('[Receptionniste]', '').trim();
+            if (content) conversationHistory.push({ role: 'user', content });
+          }
+        }
+      }
+    }
+
     // Enregistrer la reponse de l'interlocuteur
     if (callSid && speechResult) {
       await db.appendCallTranscription(callSid, `[Receptionniste] ${speechResult}`);
     }
 
-    const systemPrompt = `Tu appelles POUR une autre personne afin de lui prendre un RDV. Tu n'es PAS cette personne.
+    const systemPrompt = `Tu es un assistant telephonique qui appelle POUR une autre personne afin de lui prendre un RDV. Tu n'es PAS cette personne.
 
-PATIENT/CLIENT:
-- Nom: ${prenom} ${nom}
+PATIENT/CLIENT QUE TU REPRESENTES:
+- Nom complet: ${prenom} ${nom}
 - Telephone: ${clientInfo.telephone || 'non communique'}
-- Motif: ${motif}
+- Motif du RDV: ${motif}
 - Disponibilites: ${disponibilites}
 ${details ? `- Infos supplementaires: ${details}` : ''}
 
-REGLES ABSOLUES:
-1. Tu as DEJA dit bonjour. Ne te re-presente JAMAIS.
-2. Parle TOUJOURS a la 3eme personne: "il/elle", "Monsieur/Madame ${nom}", JAMAIS "je" ou "moi"
-3. Reponds a TOUTES les questions qu'on te pose
-4. Reponds en 1-2 phrases, naturellement
+REGLES CRITIQUES:
+1. Ne te re-presente JAMAIS (tu l'as deja fait)
+2. Parle TOUJOURS a la 3eme personne: "il/elle", "Monsieur/Madame ${nom}" - JAMAIS "je" ou "moi"
+3. Reponds en 1-2 phrases maximum, de maniere naturelle
+4. ECOUTE attentivement ce que dit l'interlocuteur - ne redemande JAMAIS une info deja donnee
 
-REPONSES AUX QUESTIONS COURANTES:
-- "Oui/D'accord" -> "Quel creneau auriez-vous de disponible ?"
-- "C'est pour quand ?" -> "Il est disponible ${disponibilites}"
-- "C'est deja un patient chez nous ?" -> "Non c'est pour une premiere visite" ou "Je ne sais pas, je peux lui demander"
-- "Son numero de telephone ?" -> "${clientInfo.telephone || 'Je vais lui demander et vous rappeler'}"
-- "Son nom ?" -> "${prenom} ${nom}"
-- "C'est pour quoi ?" -> "${motif}${details ? ', ' + details : ''}"
-- "J'ai [creneau]" -> "Parfait, [creneau] lui convient tres bien"
-- "C'est note/confirme" -> "Merci beaucoup, bonne journee"
+DETECTION DU RDV CONFIRME:
+Si l'interlocuteur dit quelque chose comme:
+- "OK", "D'accord", "C'est note", "C'est bon", "Parfait", "Tres bien"
+- "Je vous le note", "C'est enregistre"
+- Confirme un creneau que tu as accepte
 
-BALISES DE FIN:
-- RDV confirme avec date+heure -> [RDV_OK:date et heure exacte]
-- Impossible/complet -> [ECHEC:raison]
-- Rappeler plus tard -> [RAPPEL:quand]`;
+ALORS le RDV est CONFIRME ! Reponds "Parfait, merci beaucoup. Bonne journee !" et ajoute [RDV_OK:creneau confirme]
+
+EXEMPLES DE CONVERSATION:
+- Receptionniste: "Oui quand est-ce qu'il veut venir ?" -> Toi: "Il est disponible ${disponibilites}. Qu'est-ce qui vous arrangerait ?"
+- Receptionniste: "Lundi 9h30 ca va ?" -> Toi: "Parfait, lundi 9h30 lui convient tres bien."
+- Receptionniste: "Ok c'est note" -> Toi: "Merci beaucoup, bonne journee ! [RDV_OK:lundi 9h30]"
+- Receptionniste: "Son numero ?" -> Toi: "${clientInfo.telephone || 'Je vais lui demander et vous rappeler'}"
+
+BALISES DE FIN (a ajouter a ta reponse quand approprié):
+- RDV confirme -> [RDV_OK:date et heure exacte]
+- Impossible/complet/refuse -> [ECHEC:raison]
+- Doit rappeler plus tard -> [RAPPEL:quand]`;
+
+    // Construire les messages avec l'historique
+    const messages = [...conversationHistory];
+    messages.push({
+      role: 'user',
+      content: speechResult
+    });
 
     const response = await anthropic.messages.create({
       model: 'claude-opus-4-1-20250805',
       max_tokens: 100,
       system: systemPrompt,
-      messages: [{
-        role: 'user',
-        content: `L'interlocuteur te dit: "${speechResult}"`
-      }]
+      messages: messages
     });
 
     let aiResponse = response.content[0].text;
