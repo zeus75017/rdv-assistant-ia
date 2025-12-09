@@ -117,7 +117,10 @@ const userSockets = new Map();
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static('public'));
+// Ne servir les fichiers statiques public qu'en production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static('public'));
+}
 
 // Middleware d'authentification
 const authMiddleware = (req, res, next) => {
@@ -208,9 +211,11 @@ async function sendRdvConfirmationSms(telephone, entreprise, rdvDate) {
 }
 
 // ============================================
-// SERVIR LE CLIENT REACT
+// SERVIR LE CLIENT REACT (production seulement)
 // ============================================
-app.use(express.static(path.join(__dirname, 'client', 'dist')));
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'client', 'dist')));
+}
 
 // ============================================
 // API AUTHENTIFICATION
@@ -602,6 +607,34 @@ app.get('/api/stats/success-rate', authMiddleware, async (req, res) => {
     res.json({ rate });
   } catch (error) {
     console.error('Erreur taux succes:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+// ============================================
+// API HISTORIQUE DES CREDITS
+// ============================================
+app.get('/api/credits/history', authMiddleware, async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 50;
+    const history = await db.getCreditHistoryByUserId(req.user.id, limit);
+    res.json(history);
+  } catch (error) {
+    console.error('Erreur historique credits:', error);
+    res.status(500).json({ error: 'Erreur serveur' });
+  }
+});
+
+app.get('/api/credits/stats', authMiddleware, async (req, res) => {
+  try {
+    const stats = await db.getCreditStats(req.user.id);
+    const user = await db.getUserById(req.user.id);
+    res.json({
+      ...stats,
+      currentBalance: user.credits_appels
+    });
+  } catch (error) {
+    console.error('Erreur stats credits:', error);
     res.status(500).json({ error: 'Erreur serveur' });
   }
 });
@@ -1061,8 +1094,20 @@ app.post('/voice/status', async (req, res) => {
       else if (CallStatus === 'completed') {
         const user = await db.getUserById(call.user_id);
         if (user && user.credits_appels > 0) {
-          await db.updateUserCredits(call.user_id, user.credits_appels - 1);
-          console.log(`Credit debite pour utilisateur ${call.user_id}`);
+          const newBalance = user.credits_appels - 1;
+          await db.updateUserCredits(call.user_id, newBalance);
+
+          // Enregistrer la transaction dans l'historique des credits
+          await db.createCreditTransaction({
+            userId: call.user_id,
+            type: 'debit',
+            amount: 1,
+            balanceAfter: newBalance,
+            description: `Appel vers ${call.entreprise} pour ${call.client_prenom} ${call.client_nom}`,
+            callId: call.id
+          });
+
+          console.log(`Credit debite pour utilisateur ${call.user_id} (solde: ${newBalance})`);
         }
       }
     }
@@ -1149,11 +1194,13 @@ async function processScheduledRecalls() {
 setInterval(processScheduledRecalls, 60 * 1000);
 
 // ============================================
-// CATCH-ALL POUR REACT ROUTER
+// CATCH-ALL POUR REACT ROUTER (production seulement)
 // ============================================
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
-});
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+  });
+}
 
 // ============================================
 // DEMARRAGE

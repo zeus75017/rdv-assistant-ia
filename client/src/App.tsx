@@ -1,36 +1,68 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Route, Switch, Redirect, useLocation } from 'wouter'
+import { AnimatePresence, motion } from 'framer-motion'
 import { AuthProvider, useAuth } from './context/AuthContext'
 import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 
+// Page transition variants
+const pageVariants = {
+  initial: {
+    opacity: 0,
+    y: 20
+  },
+  animate: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.4,
+      ease: "easeOut"
+    }
+  },
+  exit: {
+    opacity: 0,
+    y: -20,
+    transition: {
+      duration: 0.3,
+      ease: "easeIn"
+    }
+  }
+}
+
+// Page wrapper component for transitions
+function PageWrapper({ children }: { children: React.ReactNode }) {
+  return (
+    <motion.div
+      variants={pageVariants}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth()
+  const [, setLocation] = useLocation()
 
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100vh',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '4px solid rgba(255,255,255,0.3)',
-          borderTopColor: 'white',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
-        }} />
+      <div className="min-h-screen flex items-center justify-center bg-[#fafbfc]">
+        <motion.div
+          className="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
       </div>
     )
   }
 
   if (!token) {
-    return <Navigate to="/login" replace />
+    setLocation('/login')
+    return null
   }
 
   return <>{children}</>
@@ -38,48 +70,65 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { token, isLoading } = useAuth()
+  const [, setLocation] = useLocation()
 
   if (isLoading) {
-    return null
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#fafbfc]">
+        <motion.div
+          className="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        />
+      </div>
+    )
   }
 
   if (token) {
-    return <Navigate to="/dashboard" replace />
+    setLocation('/dashboard')
+    return null
   }
 
   return <>{children}</>
 }
 
 function AppRoutes() {
+  const [location] = useLocation()
+
   return (
-    <Routes>
-      <Route path="/" element={<Home />} />
-      <Route
-        path="/login"
-        element={
+    <AnimatePresence mode="wait">
+      <Switch location={location} key={location}>
+        <Route path="/">
+          <PageWrapper>
+            <Home />
+          </PageWrapper>
+        </Route>
+        <Route path="/login">
           <PublicRoute>
-            <Login />
+            <PageWrapper>
+              <Login />
+            </PageWrapper>
           </PublicRoute>
-        }
-      />
-      <Route
-        path="/register"
-        element={
+        </Route>
+        <Route path="/register">
           <PublicRoute>
-            <Register />
+            <PageWrapper>
+              <Register />
+            </PageWrapper>
           </PublicRoute>
-        }
-      />
-      <Route
-        path="/dashboard"
-        element={
+        </Route>
+        <Route path="/dashboard">
           <ProtectedRoute>
-            <Dashboard />
+            <PageWrapper>
+              <Dashboard />
+            </PageWrapper>
           </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+        </Route>
+        <Route>
+          <Redirect to="/" />
+        </Route>
+      </Switch>
+    </AnimatePresence>
   )
 }
 

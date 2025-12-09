@@ -111,6 +111,20 @@ async function initDatabase() {
       )
     `;
 
+    // Table historique des credits
+    await sql`
+      CREATE TABLE IF NOT EXISTS credit_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER REFERENCES users(id),
+        type VARCHAR(50) NOT NULL,
+        amount INTEGER NOT NULL,
+        balance_after INTEGER NOT NULL,
+        description TEXT,
+        call_id INTEGER REFERENCES calls(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
     console.log('Base de donnees initialisee');
     return true;
   } catch (error) {
@@ -445,6 +459,46 @@ async function getSuccessRate(userId) {
   return Math.round((succes / total) * 100);
 }
 
+// Fonctions historique des crédits
+async function createCreditTransaction(transactionData) {
+  const { userId, type, amount, balanceAfter, description, callId } = transactionData;
+
+  const result = await sql`
+    INSERT INTO credit_history (user_id, type, amount, balance_after, description, call_id)
+    VALUES (${userId}, ${type}, ${amount}, ${balanceAfter}, ${description || null}, ${callId || null})
+    RETURNING *
+  `;
+  return result[0];
+}
+
+async function getCreditHistoryByUserId(userId, limit = 50) {
+  const result = await sql`
+    SELECT ch.*, c.client_prenom, c.client_nom, c.entreprise as call_entreprise
+    FROM credit_history ch
+    LEFT JOIN calls c ON ch.call_id = c.id
+    WHERE ch.user_id = ${userId}
+    ORDER BY ch.created_at DESC
+    LIMIT ${limit}
+  `;
+  return result;
+}
+
+async function getCreditStats(userId) {
+  const result = await sql`
+    SELECT
+      SUM(CASE WHEN type = 'debit' THEN amount ELSE 0 END) as total_used,
+      SUM(CASE WHEN type = 'credit' THEN amount ELSE 0 END) as total_added,
+      COUNT(*) FILTER (WHERE type = 'debit') as total_calls
+    FROM credit_history
+    WHERE user_id = ${userId}
+  `;
+  return {
+    totalUsed: parseInt(result[0].total_used) || 0,
+    totalAdded: parseInt(result[0].total_added) || 0,
+    totalCalls: parseInt(result[0].total_calls) || 0
+  };
+}
+
 module.exports = {
   sql,
   initDatabase,
@@ -473,5 +527,8 @@ module.exports = {
   getUserStats,
   getWeeklyStats,
   getMonthlyStats,
-  getSuccessRate
+  getSuccessRate,
+  createCreditTransaction,
+  getCreditHistoryByUserId,
+  getCreditStats
 };
