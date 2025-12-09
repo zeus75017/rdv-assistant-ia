@@ -738,11 +738,12 @@ app.post('/voice/outbound', async (req, res) => {
 
     const { prenom, nom, motif, userId } = clientInfo;
     const callSid = req.body.CallSid;
+    const isRetry = req.query.retry === 'true';
 
-    console.log('Appel connecte pour:', prenom, nom);
+    console.log('Appel connecte pour:', prenom, nom, isRetry ? '(retry)' : '');
 
-    // Enregistrer le debut de la transcription
-    if (callSid && userId) {
+    // Enregistrer le debut de la transcription SEULEMENT au premier appel
+    if (callSid && userId && !isRetry) {
       await db.appendCallTranscription(callSid, `[Debut de l'appel - ${new Date().toLocaleTimeString('fr-FR')}]`);
     }
 
@@ -751,15 +752,21 @@ app.post('/voice/outbound', async (req, res) => {
       : motif === 'suivi' ? 'une visite de suivi'
       : 'un rendez-vous';
 
-    let introMessage = `Bonjour, j'appelle pour prendre un rendez-vous pour ${prenom} ${nom}, pour ${motifTexte}.`;
-    if (clientInfo.details) {
-      introMessage += ` ${clientInfo.details}.`;
-    }
-    introMessage += ` Auriez-vous des disponibilites ?`;
+    let introMessage;
+    if (isRetry) {
+      // Message plus court pour les retries
+      introMessage = 'Allo ? Vous m\'entendez ?';
+    } else {
+      introMessage = `Bonjour, j'appelle pour prendre un rendez-vous pour ${prenom} ${nom}, pour ${motifTexte}.`;
+      if (clientInfo.details) {
+        introMessage += ` ${clientInfo.details}.`;
+      }
+      introMessage += ` Auriez-vous des disponibilites ?`;
 
-    // Enregistrer dans la transcription
-    if (callSid) {
-      await db.appendCallTranscription(callSid, `[IA] ${introMessage}`);
+      // Enregistrer dans la transcription SEULEMENT au premier appel
+      if (callSid) {
+        await db.appendCallTranscription(callSid, `[IA] ${introMessage}`);
+      }
     }
 
     twiml.say({
@@ -775,12 +782,16 @@ app.post('/voice/outbound', async (req, res) => {
       method: 'POST'
     });
 
-    twiml.say({
-      language: 'fr-FR',
-      voice: 'Polly.Lea'
-    }, 'Allo ? Vous m\'entendez ?');
-
-    twiml.redirect(`/voice/outbound?clientInfo=${encodeURIComponent(JSON.stringify(clientInfo))}`);
+    // Si pas de reponse, reessayer une fois puis raccrocher
+    if (isRetry) {
+      twiml.say({
+        language: 'fr-FR',
+        voice: 'Polly.Lea'
+      }, 'Je n\'entends rien, je rappellerai. Au revoir.');
+      twiml.hangup();
+    } else {
+      twiml.redirect(`/voice/outbound?clientInfo=${encodeURIComponent(JSON.stringify(clientInfo))}&retry=true`);
+    }
 
   } catch (error) {
     console.error('Erreur outbound:', error);
@@ -1090,10 +1101,31 @@ app.post('/voice/status', async (req, res) => {
 
         console.log(`Appel ${CallSid} echoue - credits non debites`);
       }
-      // Si l'appel s'est termine normalement (completed), debiter le credit
+      // Si l'appel s'est termine normalement (completed)
       else if (CallStatus === 'completed') {
+        // Si le statut est encore "en_cours", c'est que l'appel s'est termine sans RDV confirme
+        // (raccroché par l'interlocuteur ou fin de conversation sans resultat)
+        if (call.status === 'en_cours') {
+          await db.updateCallStatus(CallSid, 'termine', null, 'Appel termine sans RDV');
+          await db.appendCallTranscription(CallSid, `\n[Fin de l'appel - Termine sans RDV]`);
+
+          // Notification
+          const notification = await db.createNotification({
+            userId: call.user_id,
+            type: 'call_ended',
+            title: 'Appel termine',
+            message: `L'appel vers ${call.entreprise} pour ${call.client_prenom} ${call.client_nom} s'est termine sans RDV confirme`,
+            data: { callSid: CallSid }
+          });
+          sendNotification(call.user_id, notification);
+          sendCallUpdate(call.user_id, { callSid: CallSid, status: 'termine' });
+
+          console.log(`Appel ${CallSid} termine sans RDV`);
+        }
+
+        // Debiter le credit pour tout appel completed (sauf si deja debite)
         const user = await db.getUserById(call.user_id);
-        if (user && user.credits_appels > 0) {
+        if (user && user.credits_appels > 0 && parseInt(CallDuration || 0) > 0) {
           const newBalance = user.credits_appels - 1;
           await db.updateUserCredits(call.user_id, newBalance);
 
