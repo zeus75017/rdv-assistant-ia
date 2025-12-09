@@ -118,10 +118,17 @@ app.post('/voice/outbound', (req, res) => {
       : motif === 'suivi' ? 'une visite de suivi'
       : 'un rendez-vous';
 
+    // Construire le message d'intro
+    let introMessage = `Bonjour, j'appelle pour prendre un rendez-vous pour ${prenom} ${nom}, pour ${motifTexte}.`;
+    if (clientInfo.details) {
+      introMessage += ` ${clientInfo.details}.`;
+    }
+    introMessage += ` Auriez-vous des disponibilités ?`;
+
     twiml.say({
       language: 'fr-FR',
       voice: 'Polly.Lea'
-    }, `Bonjour, j'appelle de la part de ${prenom} ${nom} pour lui prendre un rendez-vous pour ${motifTexte}. Auriez-vous des disponibilités ?`);
+    }, introMessage);
 
     // Écouter la réponse
     twiml.gather({
@@ -168,20 +175,35 @@ app.post('/voice/conversation', async (req, res) => {
     console.log(`🗣️ [Step ${step}] Interlocuteur dit: "${speechResult}"`);
 
     // Prompt pour Claude - CONVERSATION NATURELLE
-    const systemPrompt = `Tu es au téléphone pour prendre un RDV pour ${prenom} ${nom}.
-Motif: ${motif}. Disponibilités: ${disponibilites}. ${details ? `Détails: ${details}` : ''}
+    const systemPrompt = `Tu appelles POUR une autre personne afin de lui prendre un RDV. Tu n'es PAS cette personne.
 
-IMPORTANT: Tu as DÉJÀ dit bonjour et expliqué pourquoi tu appelles. Ne te re-présente JAMAIS.
+PATIENT/CLIENT:
+- Nom: ${prenom} ${nom}
+- Téléphone: ${clientInfo.telephone || 'non communiqué'}
+- Motif: ${motif}
+- Disponibilités: ${disponibilites}
+${details ? `- Infos supplémentaires: ${details}` : ''}
 
-Réponds en 1-2 phrases max, naturellement:
-- "Oui" / "D'accord" → Demande quel créneau est disponible
-- "C'est pour quand ?" → Donne les disponibilités: ${disponibilites}
-- "J'ai [créneau]" → Accepte si ça convient
-- "C'est noté" → Remercie
+RÈGLES ABSOLUES:
+1. Tu as DÉJÀ dit bonjour. Ne te re-présente JAMAIS.
+2. Parle TOUJOURS à la 3ème personne: "il/elle", "Monsieur/Madame ${nom}", JAMAIS "je" ou "moi"
+3. Réponds à TOUTES les questions qu'on te pose
+4. Réponds en 1-2 phrases, naturellement
 
-Quand RDV confirmé avec date+heure → ajoute [RDV_OK:date et heure]
-Si impossible → ajoute [ECHEC:raison]
-Si rappeler → ajoute [RAPPEL:quand]`;
+RÉPONSES AUX QUESTIONS COURANTES:
+- "Oui/D'accord" → "Quel créneau auriez-vous de disponible ?"
+- "C'est pour quand ?" → "Il est disponible ${disponibilites}"
+- "C'est déjà un patient chez nous ?" → "Non c'est pour une première visite" ou "Je ne sais pas, je peux lui demander"
+- "Son numéro de téléphone ?" → "${clientInfo.telephone || 'Je vais lui demander et vous rappeler'}"
+- "Son nom ?" → "${prenom} ${nom}"
+- "C'est pour quoi ?" → "${motif}${details ? ', ' + details : ''}"
+- "J'ai [créneau]" → "Parfait, [créneau] lui convient très bien"
+- "C'est noté/confirmé" → "Merci beaucoup, bonne journée"
+
+BALISES DE FIN:
+- RDV confirmé avec date+heure → [RDV_OK:date et heure exacte]
+- Impossible/complet → [ECHEC:raison]
+- Rappeler plus tard → [RAPPEL:quand]`;
 
     // Appeler Claude
     const response = await anthropic.messages.create({
