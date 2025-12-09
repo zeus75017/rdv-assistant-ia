@@ -102,23 +102,9 @@ const anthropic = new Anthropic({
 });
 
 // ============================================
-// PAGES STATIQUES
+// SERVIR LE CLIENT REACT
 // ============================================
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'login.html'));
-});
-
-app.get('/register', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'register.html'));
-});
-
-app.get('/dashboard', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
-});
+app.use(express.static(path.join(__dirname, 'client', 'dist')));
 
 // ============================================
 // API AUTHENTIFICATION
@@ -926,6 +912,13 @@ async function processScheduledRecalls() {
 
 // Verifier les rappels toutes les minutes
 setInterval(processScheduledRecalls, 60 * 1000);
+
+// ============================================
+// CATCH-ALL POUR REACT ROUTER
+// ============================================
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'client', 'dist', 'index.html'));
+});
 
 // ============================================
 // DEMARRAGE
