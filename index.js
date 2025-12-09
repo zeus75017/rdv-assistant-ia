@@ -230,7 +230,7 @@ BALISES DE FIN:
       twiml.say({
         language: 'fr-FR',
         voice: 'Polly.Lea'
-      }, aiResponse + ' Merci beaucoup, bonne journée !');
+      }, aiResponse);
 
       twiml.hangup();
       return res.type('text/xml').send(twiml.toString());
@@ -245,7 +245,7 @@ BALISES DE FIN:
       twiml.say({
         language: 'fr-FR',
         voice: 'Polly.Lea'
-      }, aiResponse + ' Merci quand même, au revoir.');
+      }, aiResponse);
 
       twiml.hangup();
       return res.type('text/xml').send(twiml.toString());
@@ -260,7 +260,7 @@ BALISES DE FIN:
       twiml.say({
         language: 'fr-FR',
         voice: 'Polly.Lea'
-      }, aiResponse + ' Merci, au revoir.');
+      }, aiResponse);
 
       twiml.hangup();
       return res.type('text/xml').send(twiml.toString());
